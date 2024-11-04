@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/Davinia/cursoGo/module1/package1"
+	_ "github.com/Davinia/cursoGo/module1/package1"
 )
 
 func init() {
