@@ -6,20 +6,22 @@ func init() {
 }
 
 func SaludarEn(idioma string) {
-	var saludo rune
+	var saludo string
 	switch idioma {
 	case "Japonés":
-		saludo := 'こんにちは世界！'
+		saludo = "こんにちは世界！"
 	case "Árabe":
-		saludo := 'مرحبا بالعالم!'
+		saludo = "مرحبا بالعالم!"
 	case "Español":
-		saludo := '¡Hola mundo!'
+		saludo = "¡Hola mundo!"
 	case "Inglés":
-		saludo := 'Hello world!'
+		saludo = "Hello world!"
 	case "Francés":
-		saludo := 'Bonjour le monde!'
+		saludo = "Bonjour le monde!"
 	default:
-		saludo := '¡Hola mundo!'
+		saludo = "¡Hola mundo!"
 	}
-	fmt.Println(saludo)
+	saludoEnRunas := []rune(saludo)
+	fmt.Println(saludoEnRunas)
+	fmt.Println("¡Es broma! Aquí tienes tu saludo:", string(saludoEnRunas))
 }
