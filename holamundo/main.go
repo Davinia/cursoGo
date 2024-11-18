@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-
 	"github.com/Davinia/cursoGo/holamundo/packageTranslator"
 )
 
@@ -25,5 +24,5 @@ func main() {
 
 	fmt.Println("Idioma elegido:", *idioma)
 
-	packageTranslator.SaludarEn(idioma)
+	packageTranslator.SaludarEn(*idioma)
 }

@@ -26,6 +26,7 @@ func SaludarEn(idioma string) {
 
 	saludoEnRunas := []rune(saludo)
 
+	fmt.Println(saludo)
 	fmt.Println(saludoEnRunas)
 	fmt.Println("¡Es broma! Aquí tienes tu saludo:", string(saludoEnRunas))
 }
