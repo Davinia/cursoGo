@@ -14,9 +14,10 @@ func init() {
 }
 
 type Fecha struct {
-	Día int
-	Mes time.Month
-	Año int
+	Día                int
+	Mes                time.Month
+	Año                int
+	FechaEnFormatoTime time.Time
 }
 
 type Mes struct {
@@ -26,19 +27,25 @@ type Mes struct {
 	SemanaInicio int
 	SemanaFin    int
 	Semana       map[int][7]int
+	TotalSemanas int
 }
 
 // Compilamos la expresión regular para tenerla disponible en cualquier punto del código sin tener que recompilar cada vez
-var expresiónRegular *regexp.Regexp = regexp.MustCompile(`^\s*(?:(?P<dia>\d{1,2})\s+(?P<mes>\d{1,2})\s+)?(?P<anyo>\d{4})\s*$`)
+var expresiónRegular *regexp.Regexp = regexp.MustCompile(`^\s*(?:(\d{1,2})\s+)?(?:(\d{1,2})\s+)?(\d{4})$`)
+
+const reset = "\033[0m"
+const textoCian = "\033[36m"
+const textoRojo = "\033[31m"
+const textoBlancoSobreFondoNegro = "\033[37;40m"
 
 func procesarFlags() (bool, bool, int, error) {
 
-	númeroDeMeses := 1
+	númeroDeMeses := 0
 
 	soloUno := flag.Bool("1", false, "Muestra solo un mes")
 	triada := flag.Bool("3", false, "Muestra un mes junto con el anterior y el posterior")
 	mostrarNúmerosDeSemana := flag.Bool("week-numbering", false, "Muestra los números de la semana")
-	totalMeses := flag.Int("months", 0, "Muestra el número de meses indicado")
+	totalMeses := flag.Int("months", 0, "Muestra el número de meses indicado. Máximo 12")
 
 	flag.Parse()
 
@@ -50,7 +57,11 @@ func procesarFlags() (bool, bool, int, error) {
 			*triada = true
 		} else {
 			if *totalMeses > 0 {
-				númeroDeMeses = *totalMeses
+				if *totalMeses > 12 {
+					*totalMeses = 12
+				} else {
+					númeroDeMeses = *totalMeses
+				}
 			}
 		}
 	}
@@ -58,47 +69,86 @@ func procesarFlags() (bool, bool, int, error) {
 	return *triada, *mostrarNúmerosDeSemana, númeroDeMeses, nil
 }
 
-func procesarFecha() (Fecha, error) {
+func procesarFecha(númeroDeMeses int) (fechaSolicitada Fecha, numMeses int, err error) {
 
+	numMeses = númeroDeMeses
+	err = nil
 	fechaDeHoy := time.Now()
-	fechaSolicitada := Fecha{
+	fechaSolicitada = Fecha{
 		Día: fechaDeHoy.Day(),
 		Mes: fechaDeHoy.Month(),
 		Año: fechaDeHoy.Year(),
 	}
+	fechaSolicitada.FechaEnFormatoTime = time.Date(fechaSolicitada.Año, fechaSolicitada.Mes, fechaSolicitada.Día, 0, 0, 0, 0, time.UTC)
 
 	args := flag.Args()
+	numArgs := len(args)
 
-	if len(args) > 0 {
-
-		fmt.Println("Has introducido los argumentos: ", args)
+	if numArgs > 0 {
 		fecha := strings.Join(args, " ")
-		fmt.Println("Has introducido la fecha: ", fecha)
+		fragmentos := expresiónRegular.FindStringSubmatch(fecha)
 
-		fragmento := expresiónRegular.FindStringSubmatch(fecha)
+		if fragmentos != nil {
+			switch numArgs {
 
-		if fragmento != nil {
-			if fragmento[1] != "" {
-				fechaSolicitada.Día, _ = strconv.Atoi(fragmento[1])
-			}
-			if fragmento[2] != "" {
-				númeroMes, _ := strconv.Atoi(fragmento[2])
-				fechaSolicitada.Mes = time.Month(númeroMes)
-			}
-			if fragmento[3] != "" {
-				fechaSolicitada.Año, _ = strconv.Atoi(fragmento[3])
+			case 1:
+				if fragmentos[3] != "" {
+					fechaSolicitada.Año, _ = strconv.Atoi(fragmentos[3])
+					if fechaSolicitada.Año < 0 {
+						err = fmt.Errorf("el año debe ser mayor que 0")
+					}
+				}
+				if numMeses == 0 {
+					numMeses = 12
+				}
+			case 2:
+				if fragmentos[1] != "" {
+					númeroMes, _ := strconv.Atoi(fragmentos[1])
+					fechaSolicitada.Mes = time.Month(númeroMes)
+					if fechaSolicitada.Mes <= 0 || fechaSolicitada.Mes > 12 {
+						err = fmt.Errorf("el mes debe estar entre 1 y 12")
+					}
+				}
+				if fragmentos[3] != "" {
+					fechaSolicitada.Año, _ = strconv.Atoi(fragmentos[3])
+					if fechaSolicitada.Año < 0 {
+						err = fmt.Errorf("el año debe ser mayor que 0")
+					}
+				}
+			case 3:
+				if fragmentos[1] != "" {
+					fechaSolicitada.Día, _ = strconv.Atoi(fragmentos[1])
+					if fechaSolicitada.Día <= 0 || fechaSolicitada.Día > 31 {
+						err = fmt.Errorf("el día debe estar entre 1 y 31")
+					}
+				}
+				if fragmentos[2] != "" {
+					númeroMes, _ := strconv.Atoi(fragmentos[2])
+					fechaSolicitada.Mes = time.Month(númeroMes)
+					if fechaSolicitada.Mes <= 0 || fechaSolicitada.Mes > 12 {
+						err = fmt.Errorf("el mes debe estar entre 1 y 12")
+					}
+				}
+				if fragmentos[3] != "" {
+					fechaSolicitada.Año, _ = strconv.Atoi(fragmentos[3])
+					if fechaSolicitada.Año < 0 {
+						err = fmt.Errorf("el año debe ser mayor que 0")
+					}
+				}
 			}
 		}
+
+		fechaSolicitada.FechaEnFormatoTime = time.Date(fechaSolicitada.Año, fechaSolicitada.Mes, fechaSolicitada.Día, 0, 0, 0, 0, time.UTC)
 	} else {
 		fmt.Println("No has introducido ninguna fecha. Por defecto cogemos la fecha de hoy: ", fechaSolicitada.Día, fechaSolicitada.Mes, fechaSolicitada.Año)
 	}
-	return fechaSolicitada, nil
+	return
 }
 
-func ExtraerArgumentos() (bool, bool, int, Fecha) {
+func ExtraerArgumentos() (bool, bool, int, Fecha, error) {
 
 	triada, mostrarNúmerosDeSemana, númeroDeMeses, _ := procesarFlags()
-	fechaSolicitada, _ := procesarFecha()
+	fechaSolicitada, númeroDeMeses, err := procesarFecha(númeroDeMeses)
 
 	fmt.Printf("Quieres que te muestre el calendario con %d meses", númeroDeMeses)
 	if triada {
@@ -107,9 +157,9 @@ func ExtraerArgumentos() (bool, bool, int, Fecha) {
 	if mostrarNúmerosDeSemana {
 		fmt.Printf(" y con los números de la semana")
 	}
-	fmt.Printf(" para la fecha dia %d/%s/%d\n", fechaSolicitada.Día, fechaSolicitada.Mes, fechaSolicitada.Año)
+	fmt.Printf(" para la fecha dia %d/%s/%d\n\n", fechaSolicitada.Día, fechaSolicitada.Mes, fechaSolicitada.Año)
 
-	return triada, mostrarNúmerosDeSemana, númeroDeMeses, fechaSolicitada
+	return triada, mostrarNúmerosDeSemana, númeroDeMeses, fechaSolicitada, err
 }
 
 func CalcularDíasDelMes(año int, mes time.Month) int {
@@ -126,22 +176,31 @@ func InicializarCalendarioDelMes(fechaSolicitada Fecha) (mes Mes) {
 
 	numDías := CalcularDíasDelMes(fechaSolicitada.Año, fechaSolicitada.Mes)
 
-	fmt.Println("El mes tiene", numDías, "días")
-
 	fechaInicial := time.Date(fechaSolicitada.Año, fechaSolicitada.Mes, 1, 0, 0, 0, 0, time.UTC)
 	_, numSemanaInicial := fechaInicial.ISOWeek()
-
-	fmt.Println("El mes comienza en la semana", numSemanaInicial)
 
 	fechaFinal := fechaInicial.AddDate(0, 0, numDías-1)
 	_, numSemanaFinal := fechaFinal.ISOWeek()
 
-	fmt.Println("El mes termina en la semana", numSemanaFinal)
+	totalSemanas := numSemanaFinal - numSemanaInicial + 1
+	if (totalSemanas) < 0 {
+		totalSemanas = totalSemanas + 52
+	}
 
-	mes = Mes{Nombre: fechaSolicitada.Mes.String(), Año: fechaSolicitada.Año, DíaSeñalado: fechaSolicitada.Día, SemanaInicio: numSemanaInicial, SemanaFin: numSemanaFinal, Semana: make(map[int][7]int)}
+	mes = Mes{Nombre: fechaSolicitada.Mes.String(), Año: fechaSolicitada.Año, DíaSeñalado: fechaSolicitada.Día, SemanaInicio: numSemanaInicial, SemanaFin: numSemanaFinal, Semana: make(map[int][7]int), TotalSemanas: totalSemanas}
 
-	for s, d, p := numSemanaInicial, 1, int(fechaInicial.Weekday()); s <= numSemanaFinal; s++ {
+	diaDeLaSemana := int(fechaInicial.Weekday())
+	if diaDeLaSemana == 0 {
+		diaDeLaSemana = 6
+	} else {
+		diaDeLaSemana = diaDeLaSemana - 1
+	}
 
+	for inc, d, p := 0, 1, diaDeLaSemana; inc < mes.TotalSemanas; inc++ {
+		s := numSemanaInicial + inc
+		if s >= 53 {
+			s = s - 52
+		}
 		semana := [7]int{0, 0, 0, 0, 0, 0, 0}
 
 		for pos := p; pos <= 6 && d <= numDías; pos, d = pos+1, d+1 {
@@ -154,41 +213,66 @@ func InicializarCalendarioDelMes(fechaSolicitada Fecha) (mes Mes) {
 	return mes
 }
 
-func (mes *Mes) Pintar(mostrarNúmerosDeSemana bool) (err error) {
+func (mes *Mes) PintarNombreMes() (err error) {
 
-	totalEspacios := 21 - len(mes.Nombre)
+	totalEspacios := 24 - len(mes.Nombre)
 	EspaciosIzquierda := totalEspacios / 2
 	EspaciosDerecha := totalEspacios/2 + totalEspacios%2
 
-	fmt.Println("Semana de inicio: " + strconv.Itoa(mes.SemanaInicio) + " Semana de fin: " + strconv.Itoa(mes.SemanaFin))
-
 	cabecera := strings.Repeat(" ", EspaciosIzquierda) + mes.Nombre + " " + strconv.Itoa(mes.Año) + strings.Repeat(" ", EspaciosDerecha)
-	fmt.Println(cabecera)
+	fmt.Print(textoCian + cabecera + reset)
 
-	días := [7]string{"Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"}
-	fmt.Printf("   ")
-	for _, d := range días {
-		fmt.Printf(" "+d)
+	return nil
+}
+
+func (mes *Mes) PintarNombreDías() (err error) {
+	días := [7]string{"Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"}
+	fmt.Print("    ")
+	for i, d := range días {
+		fmt.Print(textoCian + d + reset)
+		if i < 6 {
+			fmt.Print(" ")
+		}
 	}
-	fmt.Println()
+	return nil
+}
 
-	for s := mes.SemanaInicio; s <= mes.SemanaFin; s++ {
+func (mes *Mes) PintarSemana(s int) (err error) {
+	for _, d := range mes.Semana[s] {
+		if d == 0 {
+			fmt.Print("  ")
+		} else {
+			espacioIzquierda := 2 - len(strconv.Itoa(d))
+			cadenaDía := strings.Repeat(" ", espacioIzquierda) + strconv.Itoa(d)
+			if d == mes.DíaSeñalado {
+				// Imprimir el texto con el estilo deseado
+				fmt.Print(textoBlancoSobreFondoNegro + cadenaDía + reset)
+			} else {
+				fmt.Print(cadenaDía)
+			}
+		}
+		fmt.Print(" ")
+	}
+	return nil
+}
+
+func (mes *Mes) PintarDías(incremento int, mostrarNúmerosDeSemana bool) (err error) {
+
+	if incremento < (*mes).TotalSemanas {
+		s := mes.SemanaInicio + incremento
+		if s > 52 {
+			s = s - 52
+		}
 		if mostrarNúmerosDeSemana {
 			espacioIzquierda := 2 - len(strconv.Itoa(s))
-			fmt.Printf(strings.Repeat(" ", espacioIzquierda) + "%d: ", s)
+			fmt.Printf(strings.Repeat(" ", espacioIzquierda)+textoRojo+"%d: "+reset, s)
 		} else {
-			fmt.Printf("    ")
+			fmt.Print("    ")
 		}
-		for _, d := range mes.Semana[s] {
-			if d == 0 {
-				fmt.Printf("  ")
-			}else{
-				espacioIzquierda := 2 - len(strconv.Itoa(d))
-				fmt.Printf(strings.Repeat(" ", espacioIzquierda) + "%d",d)
-			}
-			fmt.Printf(" ")
-		}
-		fmt.Println()
+		mes.PintarSemana(s)
+	} else {
+		fmt.Print("                         ")
+
 	}
 
 	return nil
@@ -196,15 +280,80 @@ func (mes *Mes) Pintar(mostrarNúmerosDeSemana bool) (err error) {
 
 func PintarCalendario(triada bool, mostrarNúmerosDeSemana bool, númeroDeMeses int, fechaSolicitada Fecha) (err error) {
 
-	mes := InicializarCalendarioDelMes(fechaSolicitada)
-	mes.Pintar(mostrarNúmerosDeSemana)
+	//Creamos un slice de arrays de 3 elementos para pintar como mucho 3 meses por línea. El slice inicialmente está vacío y tendrá capacidad para 4 arrays de 3 elementos (12 meses como máximo)
+	mesesAPintar := make([][3]Mes, 0, 4)
+
+	if triada {
+		mesAnterior := (fechaSolicitada.FechaEnFormatoTime.AddDate(0, -1, 0))
+		mesSiguiente := (fechaSolicitada.FechaEnFormatoTime.AddDate(0, 1, 0))
+
+		mesesAPintar = append(mesesAPintar, [3]Mes{
+			InicializarCalendarioDelMes(Fecha{Día: 0, Mes: mesAnterior.Month(), Año: mesAnterior.Year(), FechaEnFormatoTime: fechaSolicitada.FechaEnFormatoTime.AddDate(0, -1, 0)}),
+			InicializarCalendarioDelMes(fechaSolicitada),
+			InicializarCalendarioDelMes(Fecha{Día: 0, Mes: mesSiguiente.Month(), Año: mesSiguiente.Year(), FechaEnFormatoTime: fechaSolicitada.FechaEnFormatoTime.AddDate(0, 1, 0)})})
+	} else {
+		mesActual := fechaSolicitada.FechaEnFormatoTime
+		for i := 0; i < númeroDeMeses; i += 3 {
+			var meses [3]Mes
+
+			for j := 0; j < 3 && i+j < númeroDeMeses; j++ {
+
+				if (i + j) == 0 {
+					meses[j] = InicializarCalendarioDelMes(fechaSolicitada)
+				} else {
+					meses[j] = InicializarCalendarioDelMes(Fecha{Día: 0, Mes: mesActual.Month(), Año: mesActual.Year(), FechaEnFormatoTime: mesActual})
+				}
+				mesActual = mesActual.AddDate(0, 1, 0)
+			}
+			mesesAPintar = append(mesesAPintar, meses)
+		}
+	}
+	for _, array := range mesesAPintar {
+
+		for _, m := range array {
+			if m.Nombre != "" {
+				m.PintarNombreMes()
+			}
+		}
+		fmt.Println()
+
+		for _, m := range array {
+			if m.Nombre != "" {
+				m.PintarNombreDías()
+				fmt.Print("     ")
+			}
+		}
+		fmt.Println()
+
+		máximoNúmeroDeSemanas := 0
+		for _, m := range array {
+			if máximoNúmeroDeSemanas < m.TotalSemanas {
+				máximoNúmeroDeSemanas = m.TotalSemanas
+			}
+		}
+		for inc := 0; inc < máximoNúmeroDeSemanas; inc++ {
+			for _, m := range array {
+				if m.Nombre != "" {
+					m.PintarDías(inc, mostrarNúmerosDeSemana)
+					fmt.Print("    ")
+				}
+			}
+			fmt.Println()
+		}
+		fmt.Println()
+	}
+
 	return nil
 }
 
 func main() {
 
-	triada, mostrarNúmerosDeSemana, númeroDeMeses, fechaSolicitada := ExtraerArgumentos()
-	err := PintarCalendario(triada, mostrarNúmerosDeSemana, númeroDeMeses, fechaSolicitada)
+	triada, mostrarNúmerosDeSemana, númeroDeMeses, fechaSolicitada, err := ExtraerArgumentos()
+	if err != nil {
+		fmt.Printf("Error procesando los argumentos: %s", err)
+		return
+	}
+	err = PintarCalendario(triada, mostrarNúmerosDeSemana, númeroDeMeses, fechaSolicitada)
 
 	if err != nil {
 		fmt.Printf("Error pintando el calendario: %s", err)
