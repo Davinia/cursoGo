@@ -14,30 +14,36 @@ func init() {
 }
 
 type Fecha struct {
-	Día                int
-	Mes                time.Month
-	Año                int
-	FechaEnFormatoTime time.Time
+	Día                int // Día de la fecha
+	Mes                time.Month // Mes de la fecha en enum time.Month
+	Año                int // Año de la fecha
+	FechaEnFormatoTime time.Time // Fecha en formato time.Time
 }
 
 type Mes struct {
-	Nombre       string
-	Año          int
-	DíaSeñalado  int
-	SemanaInicio int
-	SemanaFin    int
-	Semana       map[int][7]int
-	TotalSemanas int
+	Nombre       string // Nombre del mes
+	Año          int // Año al que pertenecerá el mes
+	DíaSeñalado  int // Día elegido por el usuario
+	SemanaInicio int // Semana en la que empieza el mes
+	SemanaFin    int // Semana en la que termina el mes
+	Semana       map[int][7]int // Semanas del mes organizadas en un mapa de 7 días, indexado por el número de la semana
+	TotalSemanas int // Total de semanas que tiene el mes
 }
 
-// Compilamos la expresión regular para tenerla disponible en cualquier punto del código sin tener que recompilar cada vez
+/** Compilamos la expresión regular para tenerla disponible en cualquier punto
+del código sin tener que recompilar cada vez
+**/
 var expresiónRegular *regexp.Regexp = regexp.MustCompile(`^\s*(?:(\d{1,2})\s+)?(?:(\d{1,2})\s+)?(\d{4})$`)
 
+// Constantes para el formato del texto con colores
 const reset = "\033[0m"
 const textoCian = "\033[36m"
 const textoRojo = "\033[31m"
 const textoBlancoSobreFondoNegro = "\033[37;40m"
 
+/** Función para extraer los argumentos de la línea de comandos que van
+precedidos de '-'
+**/
 func procesarFlags() (bool, bool, int, error) {
 
 	númeroDeMeses := 0
@@ -69,6 +75,10 @@ func procesarFlags() (bool, bool, int, error) {
 	return *triada, *mostrarNúmerosDeSemana, númeroDeMeses, nil
 }
 
+/** Función para extraer los argumentos de la línea de comandos que no van
+precedidos de '-'. Se corresponden con la fecha introducida por el usuario en
+alguno de estos formatos: día mes año mes año, año
+**/
 func procesarFecha(númeroDeMeses int) (fechaSolicitada Fecha, numMeses int, err error) {
 
 	numMeses = númeroDeMeses
@@ -145,6 +155,8 @@ func procesarFecha(númeroDeMeses int) (fechaSolicitada Fecha, numMeses int, err
 	return
 }
 
+
+// Función para extraer todos los argumentos de la línea de comandos
 func ExtraerArgumentos() (bool, bool, int, Fecha, error) {
 
 	triada, mostrarNúmerosDeSemana, númeroDeMeses, _ := procesarFlags()
@@ -157,11 +169,12 @@ func ExtraerArgumentos() (bool, bool, int, Fecha, error) {
 	if mostrarNúmerosDeSemana {
 		fmt.Printf(" y con los números de la semana")
 	}
-	fmt.Printf(" para la fecha dia %d/%s/%d\n\n", fechaSolicitada.Día, fechaSolicitada.Mes, fechaSolicitada.Año)
+	fmt.Printf(" para la fecha %d/%s/%d\n\n", fechaSolicitada.Día, fechaSolicitada.Mes, fechaSolicitada.Año)
 
 	return triada, mostrarNúmerosDeSemana, númeroDeMeses, fechaSolicitada, err
 }
 
+// Función para calcular el número de días que tiene ese mes
 func CalcularDíasDelMes(año int, mes time.Month) int {
 	//Calcular primer día del mes siguiente
 	primerDíaMesSiguiente := time.Date(año, mes+1, 1, 0, 0, 0, 0, time.UTC)
@@ -172,6 +185,8 @@ func CalcularDíasDelMes(año int, mes time.Month) int {
 	return últimoDíaMes.Day()
 }
 
+/** Función para construir e inicializar una estructura de tipo Mes en base a una fecha
+**/
 func InicializarCalendarioDelMes(fechaSolicitada Fecha) (mes Mes) {
 
 	numDías := CalcularDíasDelMes(fechaSolicitada.Año, fechaSolicitada.Mes)
@@ -213,6 +228,7 @@ func InicializarCalendarioDelMes(fechaSolicitada Fecha) (mes Mes) {
 	return mes
 }
 
+// Función para sacar por pantalla el nombre del mes y el año
 func (mes *Mes) PintarNombreMes() (err error) {
 
 	totalEspacios := 24 - len(mes.Nombre)
@@ -225,6 +241,7 @@ func (mes *Mes) PintarNombreMes() (err error) {
 	return nil
 }
 
+// Función para sacar por pantalla el nombre de los días de la semana
 func (mes *Mes) PintarNombreDías() (err error) {
 	días := [7]string{"Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"}
 	fmt.Print("    ")
@@ -237,6 +254,7 @@ func (mes *Mes) PintarNombreDías() (err error) {
 	return nil
 }
 
+// Función para sacar por pantalla la semana solicitada
 func (mes *Mes) PintarSemana(s int) (err error) {
 	for _, d := range mes.Semana[s] {
 		if d == 0 {
@@ -256,6 +274,8 @@ func (mes *Mes) PintarSemana(s int) (err error) {
 	return nil
 }
 
+/** Función para sacar por pantalla la información de una semana concreta de ese mes: número de semana si fue solicitado y los días de esa semana
+**/
 func (mes *Mes) PintarDías(incremento int, mostrarNúmerosDeSemana bool) (err error) {
 
 	if incremento < (*mes).TotalSemanas {
@@ -278,9 +298,18 @@ func (mes *Mes) PintarDías(incremento int, mostrarNúmerosDeSemana bool) (err e
 	return nil
 }
 
+/** Función para pintar el calendario dependiendo de los argumentos con los que
+se llamó al programa: número de meses, mostrar números de semana, fecha
+específica
+**/
+
 func PintarCalendario(triada bool, mostrarNúmerosDeSemana bool, númeroDeMeses int, fechaSolicitada Fecha) (err error) {
 
-	//Creamos un slice de arrays de 3 elementos para pintar como mucho 3 meses por línea. El slice inicialmente está vacío y tendrá capacidad para 4 arrays de 3 elementos (12 meses como máximo)
+	/** Creamos un slice de arrays de 3 elementos para pintar como mucho 3
+	meses por línea. El slice inicialmente está vacío y tendrá capacidad para 4
+	arrays de 3 elementos (12 meses como máximo)
+	**/
+	
 	mesesAPintar := make([][3]Mes, 0, 4)
 
 	if triada {
