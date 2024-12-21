@@ -26,22 +26,21 @@ func decodeCharacter(encoded []int) string {
 }
 
 func decodeMessage(encoded [][]int) string {
-	message := ""
+	m := ""
 
 	for _, line := range encoded {
 		currentChar := line[0]
-		message += string(currentChar)
+		m += string(currentChar)
 		for _, shift := range line[1:] {
 			currentChar += shift
-			message += string(currentChar)
+			m += string(currentChar)
 		}
-		message += "\n"
+		m += "\n"
 	}
-	return message
+	return m
 }
 func main() {
-
-	encodedMessage := [][]int{
+	EM := [][]int{
 		{32, 0, 0, 14, 65, -55, 0, 55, -65, -14, 0, 0, 0, 0, 0, 0, 0, 0, 0, 79, 0, 0, 0, -79, 0, 0, 79, -55, 55, -79, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 79, 0, 0, 0, 0, -79, 0, 0, 0, 0, 0, 79, 0, 0, -79, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 79, -55, 55, -79, 0, 0, 0, 0, 0, 0, 0, 14, 65, -55, -24, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 14, 65, -55, -24, 0, 0, 0, 0, 14, 65, -65, -14, 14, 65, -65},
 		{32, 0, 0, 24, 0, 0, -24, 2, 62, -64, 0, 0, 0, 0, 0, 0, 0, 0, 0, 64, -40, 0, 0, -24, 0, 0, 64, -62, 5, -7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 64, -40, 0, 0, 42, -52, -14, 0, 0, 0, 0, 64, -40, -17, -7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 64, -62, 5, -7, 0, 0, 0, 0, 0, 0, 2, 22, 0, 0, -24, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 22, 0, 0, -24, 0, 0, 0, 0, 24, 0, 0, -24, 24, 0, 0},
 		{32, 0, 79, -55, 0, 0, 55, 0, -79, 0, 14, 65, 0, 0, 0, 0, -65, -14, 0, 0, 24, 0, 0, -24, 0, 79, 0, 0, 0, -79, 0, 0, 0, 79, 0, 0, 0, 0, 0, 0, 0, -79, 0, 0, 0, 0, 0, 24, -24, 64, -40, 0, 42, -52, -14, 0, 0, 0, 24, -24, 0, 0, 14, 65, 0, 0, 0, -65, -14, 0, 0, 79, 0, 0, 0, -79, 0, 0, 79, 0, 0, -79, 79, 0, 0, 0, -79, 0, 0, 14, 65, 0, 0, 0, -55, 0, 0, -24, 0, 0, 14, 65, 0, 0, 0, -65, -14, 0, 0, 0, 14, 65, 0, 0, 0, -55, 0, 0, -24, 0, 0, 0, 0, 24, 0, 0, -24, 24, 0, 0},
@@ -51,41 +50,56 @@ func main() {
 		{32, 0, 79, -55, 0, 0, 55, -79, 0, 64, -7, -33, 42, 13, -11, -44, 24, -41, -7, 79, -55, 0, 0, 55, -79, 79, -55, 0, 0, 55, -79, 68, -44, 0, 0, 0, 0, 0, 24, -48, 0, 0, 0, 0, 0, 0, 79, -55, 55, -79, 0, 0, 0, 0, 0, 0, 0, 64, -40, -24, 0, 64, -7, -33, 0, 0, -22, 0, 22, 55, -79, 0, 0, 0, 0, 64, -40, -17, -7, 0, 0, 0, 79, -55, 0, 0, 55, -79, 64, -7, -33, 42, 13, -11, -44, 0, 24, -46, -2, 64, -7, -33, 0, 0, -22, 0, 22, 55, -79, 64, -7, -33, 42, 13, -11, -44, 0, 24, -46, -2, 0, 0, 0, 57, -33, 24, -48, 57, -33, 24},
 	}
 
-	clearScreen()
+	EC := []int{42}
+	H := 35
+	var spaces, baseSpaces, baseWidth int
 
-	height := 35
-	maxWidth := 2*height - 1
+	calculateMeasures := func() {
+		maxWidth := 2*H - 1
 
-	baseWidth := height / 3
-	if baseWidth < 1 {
-		baseWidth = 1
-	}
-
-	encodedCharacter := []int{42}
-
-	tChar := decodeCharacter(encodedCharacter)
-
-	fmt.Println()
-
-	spaces := height - 1 + 25
-	fmt.Print(strings.Repeat(" ", spaces) + y + tChar + reset + "\n")
-
-	for i := 1; i < height; i++ {
-		lineWidth := 2*i + 1
-		spaces = height - i - 1 + 25
-		fmt.Print(strings.Repeat(" ", spaces) + g)
-		for j := 0; j < lineWidth; j++ {
-			fmt.Print(tChar)
+		baseWidth = H / 3
+		if baseWidth < 1 {
+			baseWidth = 1
 		}
-		fmt.Print(reset + "\n")
+		spaces = H - 1 + 25
+		baseSpaces = ((maxWidth - baseWidth) / 2) + 25
 	}
 
-	baseSpaces := ((maxWidth - baseWidth) / 2) + 25
-	for i := 0; i < height/3; i++ {
-		fmt.Print(strings.Repeat(" ", baseSpaces) + b + strings.Repeat("|", baseWidth) + reset + "\n")
+	letMagicBegin := func() {
+
+		top := func() {
+			tChar := decodeCharacter(EC)
+			fmt.Print(strings.Repeat(" ", spaces) + y + tChar + reset + "\n")
+
+			for i := 1; i < H; i++ {
+				lineWidth := 2*i + 1
+				spaces = H - i - 1 + 25
+				fmt.Print(strings.Repeat(" ", spaces) + g)
+				for j := 0; j < lineWidth; j++ {
+					fmt.Print(tChar)
+				}
+				fmt.Print(reset + "\n")
+			}
+		}
+
+		base := func() {
+			for i := 0; i < H/3; i++ {
+				fmt.Print(strings.Repeat(" ", baseSpaces) + b + strings.Repeat("|", baseWidth) + reset + "\n")
+			}
+		}
+
+		message := func() {
+			m := decodeMessage(EM)
+			fmt.Println("\n" + r + m + reset)
+		}
+
+		fmt.Println()
+		top()
+		base()
+		message()
 	}
 
-	message := decodeMessage(encodedMessage)
-	fmt.Println("\n" + r + message + reset)
-
+	clearScreen()
+	calculateMeasures()
+	letMagicBegin()
 }
